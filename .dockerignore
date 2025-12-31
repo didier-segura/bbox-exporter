@@ -1,0 +1,6 @@
+.git
+.github
+dist
+bb_exporter
+appsettings.json
+*.log
