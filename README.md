@@ -75,7 +75,7 @@ Import `grafana/BBox_Exporter.json` into Grafana and point it at your Prometheus
 ## CI/CD
 
 - `.github/workflows/ci.yml` runs `go test`, `go vet`, and a build on pushes and pull requests.
-- `.github/workflows/release.yml` builds binaries for linux/darwin/windows on amd64 and arm64, publishes a GitHub Release for tags matching `v*`, and pushes multi-arch container images to GHCR.
+- `.github/workflows/release.yml` builds binaries for linux/darwin/windows on amd64 and arm64, packages them (tar.gz / zip), publishes a GitHub Release for tags matching `v*`, and pushes multi-arch container images to GHCR.
 
 Tag a release (`git tag vX.Y.Z && git push origin vX.Y.Z`) to publish artifacts.
 

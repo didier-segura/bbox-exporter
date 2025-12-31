@@ -95,6 +95,18 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Package binaries
+        run: |
+          set -euo pipefail
+          for f in dist/bb_exporter-*; do
+            base="$(basename "$f")"
+            if [[ "$base" == *.exe ]]; then
+              zip -j "dist/${base%.exe}.zip" "$f"
+            else
+              tar -C dist -czf "dist/${base}.tar.gz" "$base"
+            fi
+          done
+
       - name: Generate checksums
         run: |
           cd dist
