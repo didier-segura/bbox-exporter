@@ -80,27 +80,10 @@
       "gridPos": { "h": 8, "w": 14, "x": 0, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "targets": [
-        {
-          "expr": "rate(bb_device_cpu_user[5m]) * 100",
-          "legendFormat": "User",
-          "refId": "A"
-        },
-        {
-          "expr": "rate(bb_device_cpu_system[5m]) * 100",
-          "legendFormat": "System",
-          "refId": "B"
-        },
-        {
-          "expr": "rate(bb_device_cpu_idle[5m]) * 100",
-          "legendFormat": "Idle",
-          "refId": "C",
-          "hide": true
-        },
-        {
-          "expr": "(rate(bb_device_cpu_user[5m]) + rate(bb_device_cpu_system[5m])) * 100",
-          "legendFormat": "User + System",
-          "refId": "D"
-        }
+        { "expr": "bb_device_cpu_user_percent", "legendFormat": "User", "refId": "A" },
+        { "expr": "bb_device_cpu_system_percent", "legendFormat": "System", "refId": "B" },
+        { "expr": "bb_device_cpu_idle_percent", "legendFormat": "Idle", "refId": "C", "hide": true },
+        { "expr": "bb_device_cpu_usage_percent", "legendFormat": "User + System", "refId": "D" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -187,7 +170,7 @@
     },
     {
       "type": "timeseries",
-      "title": "WAN Throughput",
+      "title": "WAN Throughput (Mbit/s)",
       "id": 6,
       "gridPos": { "h": 8, "w": 14, "x": 0, "y": 10 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
@@ -210,7 +193,7 @@
     },
     {
       "type": "stat",
-      "title": "WAN Contractual Bandwidth",
+      "title": "WAN Contractual Bandwidth (Mbit/s)",
       "id": 7,
       "gridPos": { "h": 4, "w": 5, "x": 14, "y": 10 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
@@ -303,7 +286,7 @@
     },
     {
       "type": "timeseries",
-      "title": "LAN Throughput",
+      "title": "LAN Throughput (Mbit/s)",
       "id": 11,
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
@@ -322,7 +305,7 @@
     },
     {
       "type": "timeseries",
-      "title": "Wi-Fi Throughput",
+      "title": "Wi-Fi Throughput (Mbit/s)",
       "id": 12,
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },

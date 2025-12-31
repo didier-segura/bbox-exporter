@@ -1,0 +1,13 @@
+version: "3"
+services:
+  bbox-exporter:
+    image: ghcr.io/didier-segura/bbox-exporter/bb_exporter:latest
+    container_name: bbox-exporter
+    restart: unless-stopped
+    environment:
+      - BBOX_PASSWORD=change_me
+    ports:
+      - "9100:9100"
+    # Uncomment to provide a full custom config instead of the baked-in defaults.
+    # volumes:
+    #   - ./appsettings.json:/app/appsettings.json:ro

@@ -17,6 +17,7 @@ import (
 type Exporter struct {
 	client *bbox.Client
 	g      gauges
+	last   sampleState
 }
 
 type gauges struct {
@@ -38,10 +39,37 @@ type gauges struct {
 	wanInfo           *prometheus.GaugeVec
 	lanRxBytes        prometheus.Gauge
 	lanTxBytes        prometheus.Gauge
+	lanRxMbps         prometheus.Gauge
+	lanTxMbps         prometheus.Gauge
 	wireless24RxBytes prometheus.Gauge
 	wireless24TxBytes prometheus.Gauge
 	wireless5RxBytes  prometheus.Gauge
 	wireless5TxBytes  prometheus.Gauge
+	wanRxMbps         prometheus.Gauge
+	wanTxMbps         prometheus.Gauge
+	wireless24RxMbps  prometheus.Gauge
+	wireless24TxMbps  prometheus.Gauge
+	wireless5RxMbps   prometheus.Gauge
+	wireless5TxMbps   prometheus.Gauge
+	cpuUserPct        prometheus.Gauge
+	cpuSystemPct      prometheus.Gauge
+	cpuIdlePct        prometheus.Gauge
+	cpuUsagePct       prometheus.Gauge
+}
+
+type sampleState struct {
+	ts         time.Time
+	wanRxBytes bbox.FlexibleInt
+	wanTxBytes bbox.FlexibleInt
+	lanRxBytes bbox.FlexibleInt
+	lanTxBytes bbox.FlexibleInt
+	wifi24Rx   bbox.FlexibleInt
+	wifi24Tx   bbox.FlexibleInt
+	wifi5Rx    bbox.FlexibleInt
+	wifi5Tx    bbox.FlexibleInt
+	cpuUser    int
+	cpuSystem  int
+	cpuIdle    int
 }
 
 func New(client *bbox.Client) *Exporter {
@@ -87,10 +115,22 @@ func New(client *bbox.Client) *Exporter {
 			),
 			lanRxBytes:        promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_lan_stats_rx_bytes", Help: "LAN RX bytes"}),
 			lanTxBytes:        promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_lan_stats_tx_bytes", Help: "LAN TX bytes"}),
+			lanRxMbps:         promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_lan_stats_rx_mbps", Help: "LAN RX throughput in Mbit/s"}),
+			lanTxMbps:         promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_lan_stats_tx_mbps", Help: "LAN TX throughput in Mbit/s"}),
 			wireless24RxBytes: promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_wireless_24_stats_rx_bytes", Help: "2.4GHz Wi-Fi RX bytes"}),
 			wireless24TxBytes: promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_wireless_24_stats_tx_bytes", Help: "2.4GHz Wi-Fi TX bytes"}),
 			wireless5RxBytes:  promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_wireless_5_stats_rx_bytes", Help: "5GHz Wi-Fi RX bytes"}),
 			wireless5TxBytes:  promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_wireless_5_stats_tx_bytes", Help: "5GHz Wi-Fi TX bytes"}),
+			wanRxMbps:         promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_wan_ip_stats_rx_mbps", Help: "WAN RX throughput in Mbit/s"}),
+			wanTxMbps:         promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_wan_ip_stats_tx_mbps", Help: "WAN TX throughput in Mbit/s"}),
+			wireless24RxMbps:  promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_wireless_24_stats_rx_mbps", Help: "2.4GHz Wi-Fi RX throughput in Mbit/s"}),
+			wireless24TxMbps:  promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_wireless_24_stats_tx_mbps", Help: "2.4GHz Wi-Fi TX throughput in Mbit/s"}),
+			wireless5RxMbps:   promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_wireless_5_stats_rx_mbps", Help: "5GHz Wi-Fi RX throughput in Mbit/s"}),
+			wireless5TxMbps:   promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_wireless_5_stats_tx_mbps", Help: "5GHz Wi-Fi TX throughput in Mbit/s"}),
+			cpuUserPct:        promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_device_cpu_user_percent", Help: "CPU user percent"}),
+			cpuSystemPct:      promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_device_cpu_system_percent", Help: "CPU system percent"}),
+			cpuIdlePct:        promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_device_cpu_idle_percent", Help: "CPU idle percent"}),
+			cpuUsagePct:       promauto.NewGauge(prometheus.GaugeOpts{Name: "bb_device_cpu_usage_percent", Help: "CPU user+system percent"}),
 		},
 	}
 }
@@ -142,15 +182,20 @@ func (e *Exporter) Refresh(ctx context.Context) error {
 	e.g.cpuUser.Set(float64(cpu.Device.CPU.Time.User))
 	e.g.cpuSystem.Set(float64(cpu.Device.CPU.Time.System))
 	e.g.cpuIdle.Set(float64(cpu.Device.CPU.Time.Idle))
-	e.g.cpuTemperature.Set(float64(cpu.Device.CPU.Temperature.Main))
+	e.g.cpuTemperature.Set(millidegreesToCelsius(cpu.Device.CPU.Temperature.Main))
+	e.setCPUPercent(cpu.Device.CPU.Time.User, cpu.Device.CPU.Time.System, cpu.Device.CPU.Time.Idle)
 
-	e.g.memTotal.Set(float64(mem.Device.Mem.Total))
-	e.g.memFree.Set(float64(mem.Device.Mem.Free))
+	e.g.memTotal.Set(kilobytesToBytes(mem.Device.Mem.Total))
+	e.g.memFree.Set(kilobytesToBytes(mem.Device.Mem.Free))
+
+	now := time.Now()
 
 	e.g.wanRxBytes.Set(float64(wanStats.Wan.IP.Stats.Rx.Bytes))
 	e.g.wanTxBytes.Set(float64(wanStats.Wan.IP.Stats.Tx.Bytes))
-	e.g.wanRxContractual.Set(float64(wanStats.Wan.IP.Stats.Rx.ContractualBandwidth))
-	e.g.wanTxContractual.Set(float64(wanStats.Wan.IP.Stats.Tx.ContractualBandwidth))
+	e.g.wanRxMbps.Set(e.throughputMbps(e.last.wanRxBytes, wanStats.Wan.IP.Stats.Rx.Bytes, e.last.ts, now))
+	e.g.wanTxMbps.Set(e.throughputMbps(e.last.wanTxBytes, wanStats.Wan.IP.Stats.Tx.Bytes, e.last.ts, now))
+	e.g.wanRxContractual.Set(kilobitsToBits(wanStats.Wan.IP.Stats.Rx.ContractualBandwidth))
+	e.g.wanTxContractual.Set(kilobitsToBits(wanStats.Wan.IP.Stats.Tx.ContractualBandwidth))
 	e.g.wanInternetState.Set(float64(wanInfo.Wan.Internet.State))
 	e.g.wanInterfaceState.Set(float64(wanInfo.Wan.Interface.State))
 	if strings.EqualFold(wanInfo.Wan.IP.State, "up") {
@@ -189,11 +234,100 @@ func (e *Exporter) Refresh(ctx context.Context) error {
 
 	e.g.lanRxBytes.Set(float64(lanStats.Lan.Stats.Rx.Bytes))
 	e.g.lanTxBytes.Set(float64(lanStats.Lan.Stats.Tx.Bytes))
+	e.g.lanRxMbps.Set(e.throughputMbps(e.last.lanRxBytes, lanStats.Lan.Stats.Rx.Bytes, e.last.ts, now))
+	e.g.lanTxMbps.Set(e.throughputMbps(e.last.lanTxBytes, lanStats.Lan.Stats.Tx.Bytes, e.last.ts, now))
 
 	e.g.wireless24RxBytes.Set(float64(wireless24Stats.Wireless.SSID.Stats.Rx.Bytes))
 	e.g.wireless24TxBytes.Set(float64(wireless24Stats.Wireless.SSID.Stats.Tx.Bytes))
 	e.g.wireless5RxBytes.Set(float64(wireless5Stats.Wireless.SSID.Stats.Rx.Bytes))
 	e.g.wireless5TxBytes.Set(float64(wireless5Stats.Wireless.SSID.Stats.Tx.Bytes))
+	e.g.wireless24RxMbps.Set(e.throughputMbps(e.last.wifi24Rx, wireless24Stats.Wireless.SSID.Stats.Rx.Bytes, e.last.ts, now))
+	e.g.wireless24TxMbps.Set(e.throughputMbps(e.last.wifi24Tx, wireless24Stats.Wireless.SSID.Stats.Tx.Bytes, e.last.ts, now))
+	e.g.wireless5RxMbps.Set(e.throughputMbps(e.last.wifi5Rx, wireless5Stats.Wireless.SSID.Stats.Rx.Bytes, e.last.ts, now))
+	e.g.wireless5TxMbps.Set(e.throughputMbps(e.last.wifi5Tx, wireless5Stats.Wireless.SSID.Stats.Tx.Bytes, e.last.ts, now))
+
+	e.last = sampleState{
+		ts:         now,
+		wanRxBytes: wanStats.Wan.IP.Stats.Rx.Bytes,
+		wanTxBytes: wanStats.Wan.IP.Stats.Tx.Bytes,
+		lanRxBytes: lanStats.Lan.Stats.Rx.Bytes,
+		lanTxBytes: lanStats.Lan.Stats.Tx.Bytes,
+		wifi24Rx:   wireless24Stats.Wireless.SSID.Stats.Rx.Bytes,
+		wifi24Tx:   wireless24Stats.Wireless.SSID.Stats.Tx.Bytes,
+		wifi5Rx:    wireless5Stats.Wireless.SSID.Stats.Rx.Bytes,
+		wifi5Tx:    wireless5Stats.Wireless.SSID.Stats.Tx.Bytes,
+		cpuUser:    cpu.Device.CPU.Time.User,
+		cpuSystem:  cpu.Device.CPU.Time.System,
+		cpuIdle:    cpu.Device.CPU.Time.Idle,
+	}
 
 	return nil
+}
+
+func bytesToMegabits(v bbox.FlexibleInt) float64 {
+	// Convert bytes/sec to megabits/sec (decimal).
+	return float64(v) * 8 / 1_000_000
+}
+
+func millidegreesToCelsius(v int) float64 {
+	return float64(v) / 1000.0
+}
+
+func kilobitsToBits(v int) float64 {
+	return float64(v) * 1000.0
+}
+
+func kilobytesToBytes(v int) float64 {
+	return float64(v) * 1024.0
+}
+
+func (e *Exporter) setCPUPercent(user int, system int, idle int) {
+	if e.last.ts.IsZero() {
+		e.g.cpuUserPct.Set(0)
+		e.g.cpuSystemPct.Set(0)
+		e.g.cpuIdlePct.Set(0)
+		e.g.cpuUsagePct.Set(0)
+		return
+	}
+	userDelta := float64(user - e.last.cpuUser)
+	systemDelta := float64(system - e.last.cpuSystem)
+	idleDelta := float64(idle - e.last.cpuIdle)
+	if userDelta < 0 || systemDelta < 0 || idleDelta < 0 {
+		e.g.cpuUserPct.Set(0)
+		e.g.cpuSystemPct.Set(0)
+		e.g.cpuIdlePct.Set(0)
+		e.g.cpuUsagePct.Set(0)
+		return
+	}
+	totalDelta := userDelta + systemDelta + idleDelta
+	if totalDelta <= 0 {
+		e.g.cpuUserPct.Set(0)
+		e.g.cpuSystemPct.Set(0)
+		e.g.cpuIdlePct.Set(0)
+		e.g.cpuUsagePct.Set(0)
+		return
+	}
+	userPct := userDelta / totalDelta * 100
+	systemPct := systemDelta / totalDelta * 100
+	idlePct := idleDelta / totalDelta * 100
+	e.g.cpuUserPct.Set(userPct)
+	e.g.cpuSystemPct.Set(systemPct)
+	e.g.cpuIdlePct.Set(idlePct)
+	e.g.cpuUsagePct.Set(userPct + systemPct)
+}
+
+func (e *Exporter) throughputMbps(prev bbox.FlexibleInt, current bbox.FlexibleInt, prevTS time.Time, now time.Time) float64 {
+	if prevTS.IsZero() {
+		return 0
+	}
+	delta := float64(current - prev)
+	if delta < 0 {
+		return 0
+	}
+	seconds := now.Sub(prevTS).Seconds()
+	if seconds <= 0 {
+		return 0
+	}
+	// bits per second -> megabits per second.
+	return (delta * 8) / (seconds * 1_000_000)
 }
