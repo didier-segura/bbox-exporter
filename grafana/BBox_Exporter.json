@@ -92,7 +92,8 @@
           "custom": {
             "drawStyle": "line",
             "lineInterpolation": "smooth",
-            "fillOpacity": 10,
+            "fillOpacity": 35,
+            "gradientMode": "opacity",
             "showPoints": "auto"
           }
         },
@@ -150,7 +151,8 @@
           "color": { "mode": "palette-classic" },
           "custom": {
             "drawStyle": "line",
-            "fillOpacity": 20,
+            "fillOpacity": 35,
+            "gradientMode": "opacity",
             "lineInterpolation": "smooth",
             "showPoints": "auto"
           }
@@ -182,7 +184,13 @@
         "defaults": {
           "unit": "bps",
           "color": { "mode": "palette-classic" },
-          "custom": { "drawStyle": "line", "fillOpacity": 15, "lineInterpolation": "smooth", "showPoints": "auto" }
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 35,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "auto"
+          }
         },
         "overrides": []
       },
@@ -295,7 +303,17 @@
         { "expr": "rate(bb_lan_stats_tx_bytes[5m]) * 8", "legendFormat": "TX", "refId": "B" }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "bps", "color": { "mode": "palette-classic" } },
+        "defaults": {
+          "unit": "bps",
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 35,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "auto"
+          }
+        },
         "overrides": []
       },
       "options": {
@@ -316,13 +334,73 @@
         { "expr": "rate(bb_wireless_5_stats_tx_bytes[5m]) * 8", "legendFormat": "TX 5GHz", "refId": "D" }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "bps", "color": { "mode": "palette-classic" } },
+        "defaults": {
+          "unit": "bps",
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 35,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "showPoints": "auto"
+          }
+        },
         "overrides": []
       },
       "options": {
         "legend": { "displayMode": "list", "placement": "bottom" },
         "tooltip": { "mode": "single", "sort": "none" }
       }
+    },
+    {
+      "type": "nodeGraph",
+      "title": "Network Topology (Mbit/s)",
+      "id": 13,
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "expr": "label_replace(label_replace(bb_wan_ip_stats_rx_mbps, \"source\", \"Internet\", \"\", \"\"), \"target\", \"BBox\", \"\", \"\") or label_replace(label_replace(bb_wan_ip_stats_tx_mbps, \"source\", \"BBox\", \"\", \"\"), \"target\", \"Internet\", \"\", \"\")",
+          "legendFormat": "",
+          "refId": "A",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "expr": "label_replace(label_replace(label_replace(vector(1), \"id\", \"BBox\", \"__name__\", \".*\"), \"title\", \"BBox\", \"__name__\", \".*\"), \"subTitle\", \"Gateway\", \"__name__\", \".*\") or label_replace(label_replace(label_replace(vector(1), \"id\", \"Internet\", \"__name__\", \".*\"), \"title\", \"Internet\", \"__name__\", \".*\"), \"subTitle\", \"Upstream\", \"__name__\", \".*\")",
+          "legendFormat": "",
+          "refId": "B",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbps",
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "layout": "force",
+        "edges": { "mainStatUnit": "Mbit/s" },
+        "nodeSize": "lg",
+        "showArrows": true,
+        "showLabels": true,
+        "showLegend": true
+      },
+      "transformations": [
+        { "id": "labelsToFields", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true },
+            "includeByName": { "source": true, "target": true, "id": true, "title": true, "subTitle": true, "Value": true },
+            "renameByName": { "Value": "mainStat" },
+            "indexByName": { "source": 0, "target": 1, "id": 0, "Value": 2 }
+          }
+        }
+      ]
     }
   ],
   "refresh": "1m",

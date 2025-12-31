@@ -129,24 +129,24 @@ type WanIPThroughput struct {
 }
 
 type WanRx struct {
-	Packets              int         `json:"packets"`
+	Packets              FlexibleInt `json:"packets"`
 	Bytes                FlexibleInt `json:"bytes"`
-	PacketsErrors        int         `json:"packetserrors"`
-	PacketsDiscards      int         `json:"packetsdiscards"`
+	PacketsErrors        FlexibleInt `json:"packetserrors"`
+	PacketsDiscards      FlexibleInt `json:"packetsdiscards"`
 	Occupation           float64     `json:"occupation"`
-	Bandwidth            int         `json:"bandwidth"`
-	MaxBandwidth         int         `json:"maxBandwidth"`
+	Bandwidth            FlexibleInt `json:"bandwidth"`
+	MaxBandwidth         FlexibleInt `json:"maxBandwidth"`
 	ContractualBandwidth int         `json:"contractualBandwidth"`
 }
 
 type WanTx struct {
-	Packets              int         `json:"packets"`
+	Packets              FlexibleInt `json:"packets"`
 	Bytes                FlexibleInt `json:"bytes"`
-	PacketsErrors        int         `json:"packetserrors"`
-	PacketsDiscards      int         `json:"packetsdiscards"`
+	PacketsErrors        FlexibleInt `json:"packetserrors"`
+	PacketsDiscards      FlexibleInt `json:"packetsdiscards"`
 	Occupation           float64     `json:"occupation"`
-	Bandwidth            int         `json:"bandwidth"`
-	MaxBandwidth         int         `json:"maxBandwidth"`
+	Bandwidth            FlexibleInt `json:"bandwidth"`
+	MaxBandwidth         FlexibleInt `json:"maxBandwidth"`
 	ContractualBandwidth int         `json:"contractualBandwidth"`
 }
 
@@ -166,16 +166,16 @@ type LanThroughput struct {
 
 type LanRx struct {
 	Bytes           FlexibleInt `json:"bytes"`
-	Packets         int         `json:"packets"`
-	PacketsErrors   int         `json:"packetserrors"`
-	PacketsDiscards int         `json:"packetsdiscards"`
+	Packets         FlexibleInt `json:"packets"`
+	PacketsErrors   FlexibleInt `json:"packetserrors"`
+	PacketsDiscards FlexibleInt `json:"packetsdiscards"`
 }
 
 type LanTx struct {
 	Bytes           FlexibleInt `json:"bytes"`
-	Packets         int         `json:"packets"`
-	PacketsErrors   int         `json:"packetserrors"`
-	PacketsDiscards int         `json:"packetsdiscards"`
+	Packets         FlexibleInt `json:"packets"`
+	PacketsErrors   FlexibleInt `json:"packetserrors"`
+	PacketsDiscards FlexibleInt `json:"packetsdiscards"`
 }
 
 // WirelessStats mirrors /api/v1/wireless/{band}/stats payload.
@@ -199,16 +199,16 @@ type WirelessThroughput struct {
 
 type WirelessRx struct {
 	Bytes           FlexibleInt `json:"bytes"`
-	Packets         int         `json:"packets"`
-	PacketsErrors   int         `json:"packetserrors"`
-	PacketsDiscards int         `json:"packetsdiscards"`
+	Packets         FlexibleInt `json:"packets"`
+	PacketsErrors   FlexibleInt `json:"packetserrors"`
+	PacketsDiscards FlexibleInt `json:"packetsdiscards"`
 }
 
 type WirelessTx struct {
 	Bytes           FlexibleInt `json:"bytes"`
-	Packets         int         `json:"packets"`
-	PacketsErrors   int         `json:"packetserrors"`
-	PacketsDiscards int         `json:"packetsdiscards"`
+	Packets         FlexibleInt `json:"packets"`
+	PacketsErrors   FlexibleInt `json:"packetserrors"`
+	PacketsDiscards FlexibleInt `json:"packetsdiscards"`
 }
 
 // FlexibleInt handles APIs that sometimes return numbers as strings.
